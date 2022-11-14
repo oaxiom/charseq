@@ -1,5 +1,5 @@
 # charseq
-Simple (relative term) ChAR-seq processer
+Simple (relative term) ChAR-seq processor
 
 ## Why?
 We used paired end reads, not long single end reads as suggested in the paper.
