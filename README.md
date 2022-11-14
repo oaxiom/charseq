@@ -15,12 +15,12 @@ This has disadvantages:
 
 You should use cut_adapt (or equiavlent) to remove adaptors first!
 
-python char_seq.py read1.fq.gz read2.fq.gz
+`python char_seq.py read1.fq.gz read2.fq.gz`
 
 ## What?
 
 Test on 1M reads:
-
+`
 test_split % python ~/Tools/charseq/charseq.py test_fq/Hs_char_all.rp1.trim.p1.fq.gz test_fq/Hs_char_all.rp1.trim.p2.fq.gz
 1,000,000
 Processed: 1,000,000 reads
@@ -40,7 +40,7 @@ Both pairs are too short to give a result: 0 (0.0%)
            [ DNA sequence <20 bp too short: 322,458 (32.2%)
            [ RNA sequence <20 bp too short: 49,602 (5.0%)
 Final number of reads kept: 96,763 (9.7%)
-
+`
 Yes, around 10% of valid reads is about right for ChAR-seq.
 
 And it produces two new FASTA files:
