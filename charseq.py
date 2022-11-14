@@ -188,9 +188,9 @@ def commonOverlapIndexOf_mismatch(text1, text2):
 idx = 0
 for r1, r2 in fastqPE(sys.argv[1], sys.argv[2]):
     idx += 1
-    if (idx) % 1e3 == 0:
+    if (idx) % 1e6 == 0:
         print('{:,}'.format(idx))
-        break
+        #break
 
     if len(r1['seq']) + len(r2['seq']) < 55: # No way to get info out of this small
         stats.both_pairs_too_short += 1
@@ -306,9 +306,7 @@ for r1, r2 in fastqPE(sys.argv[1], sys.argv[2]):
     bridge_seq = full_seq[bridge_loc:bridge_loc+17]
     #print(f'read: {rna} {bridge_seq} {dna}')
     #print(f'{rna} {bridge_seq}')
-    print(f'{bridge_seq} {dna}')
-
-
+    #print(f'{bridge_seq} {dna}')
 
     #print(dna[0:30])
     # DNA need to find
