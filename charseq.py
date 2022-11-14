@@ -87,8 +87,8 @@ def find_bridge(seq, qual, stats=stats, mismatch=2):
 
     else:
         # slower mismatch path:
-        hit_f = regex.findall("(ACCGGCGTCCAAG){s<=2}", seq)
-        hit_r = regex.findall("(CTTGGACGCCGGT){s<=2}", seq)
+        hit_f = regex.findall("(ACCGGCGTCCAAG){s<=3}", seq)
+        hit_r = regex.findall("(CTTGGACGCCGGT){s<=3}", seq)
 
         if len(hit_f) > 1 or len(hit_r) > 1:
             stats.multi_bridge += 1
