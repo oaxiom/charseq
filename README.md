@@ -5,7 +5,7 @@ Simple (relative term) ChAR-seq processor
 We used paired end reads, not long single end reads as suggested in the paper.
 This has advantages:
 1. We can get longer potential reads by using PE300
-2. Mismatches can be  
+2. Mismatches can be fixed
 
 This has disadvantages:
 1. The bridge may not be sequences making RNA/DNA ends unidentifiable.
