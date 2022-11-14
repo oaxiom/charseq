@@ -194,7 +194,7 @@ for r1, r2 in fastqPE(sys.argv[1], sys.argv[2]):
     idx += 1
     if (idx) % 1e5 == 0:
         print('{:,}'.format(idx))
-        break
+        #break
 
     if len(r1['seq']) + len(r2['seq']) < 55: # No way to get info out of this small
         stats.both_pairs_too_short += 1
