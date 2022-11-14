@@ -29,6 +29,9 @@ def fastqPE(filename1, filename2):
 
         yield ({"name": name1, "strand": strand1, "seq": seq1, "qual": qual1},
             {"name": name2, "strand": strand2, "seq": seq2, "qual": qual2})
+
+    oh1.close()
+    oh2.close()
     return
 
 if len(sys.argv) < 3:
