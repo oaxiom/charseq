@@ -71,6 +71,10 @@ def find_bridge(seq, qual, stats=stats, mismatch=2):
         stats.multi_bridge += 1
         return None, None, None
 
+    elif len(find_f) == 1 and len(find_r) == 1:
+        stats.multi_bridge += 1
+        return None, None, None
+
     elif len(find_f) > 0:
         stats.perfect_bridge += 1
         stats.f_strand += 1
@@ -188,9 +192,9 @@ def commonOverlapIndexOf_mismatch(text1, text2):
 idx = 0
 for r1, r2 in fastqPE(sys.argv[1], sys.argv[2]):
     idx += 1
-    if (idx) % 1e6 == 0:
+    if (idx) % 1e5 == 0:
         print('{:,}'.format(idx))
-        #break
+        break
 
     if len(r1['seq']) + len(r2['seq']) < 55: # No way to get info out of this small
         stats.both_pairs_too_short += 1
