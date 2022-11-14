@@ -195,7 +195,7 @@ def commonOverlapIndexOf_mismatch(text1, text2):
 idx = 0
 for r1, r2 in fastqPE(sys.argv[1], sys.argv[2]):
     idx += 1
-    if (idx) % 1e5 == 0:
+    if (idx) % 1e6 == 0:
         print('{:,}'.format(idx))
         #break
 
