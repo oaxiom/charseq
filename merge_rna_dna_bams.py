@@ -55,8 +55,8 @@ for name in dna:
 print(f'Found {len(merged):,} matching reads out of {len(dna):,} DNA and {len(rna):,} RNA reads')
 basename = os.path.split(sys.argv[1])[1].replace('.dna.bam', '')
 
-dnaout = pysam.AlignmentFile("{}.dna.bam".format(basename), "wb", template=dnatemplate)
-rnaout = pysam.AlignmentFile("{}.rna.bam".format(basename), "wb", template=rnatemplate)
+dnaout = pysam.AlignmentFile("{}.matched.dna.bam".format(basename), "wb", template=dnatemplate)
+rnaout = pysam.AlignmentFile("{}.matched.rna.bam".format(basename), "wb", template=rnatemplate)
 
 for name in merged:
     rnaout.write(rna[name])

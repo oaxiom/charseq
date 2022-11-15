@@ -8,12 +8,13 @@ This has advantages:
 2. Mismatches can be fixed
 
 This has disadvantages:
-1. The bridge may not be sequences making RNA/DNA ends unidentifiable.
+1. The bridge may not be sequenced making RNA/DNA ends unidentifiable.
 2. This dramatically increases the complexity of the read processing.
 
 ## How?
 
 You should use cut_adapt (or equiavlent) to remove adaptors first!
+
 ```
 python char_seq.py read1.fq.gz read2.fq.gz
 python merge_rna_dna_bams.py dnareads.bam rnareads.bam
@@ -22,8 +23,9 @@ python merge_rna_dna_bams.py dnareads.bam rnareads.bam
 ## What?
 
 Test on 1M reads:
-```python
-test_split % python ~/Tools/charseq/charseq.py test_fq/Hs_char_all.rp1.trim.p1.fq.gz test_fq/Hs_char_all.rp1.trim.p2.fq.gz
+
+```
+test_split % python charseq.py test_fq/Hs_char_all.rp1.trim.p1.fq.gz test_fq/Hs_char_all.rp1.trim.p2.fq.gz
 1,000,000
 Processed: 1,000,000 reads
 Both pairs are too short to give a result: 0 (0.0%)
@@ -43,12 +45,21 @@ Both pairs are too short to give a result: 0 (0.0%)
            [ RNA sequence <20 bp too short: 49,602 (5.0%)
 Final number of reads kept: 96,763 (9.7%)
 ```
+
 Yes, around 10% of valid reads is about right for ChAR-seq.
 
 And it produces two new FASTA files:
 
 Hs_char_all.rp1.dna.fq.gz
 Hs_char_all.rp1.rna.fq.gz
+
+Then do you alignment, then merge the resulting bams so that only 
+
+Next, run merge_rna_dna_bams.py to pair up the reads 
+
+```
+TOADD: EXAMPLE
+```
 
 ## Who?
 
