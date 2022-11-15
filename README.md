@@ -53,13 +53,20 @@ And it produces two new FASTA files:
 Hs_char_all.rp1.dna.fq.gz
 Hs_char_all.rp1.rna.fq.gz
 
-Then do you alignment, then merge the resulting bams so that only 
+Then do you alignment, using your favourite aligners.
+We use bowtie2 for the DNA reads and STAR for the RNA reads. Probably better to use one 
+aligner for both sides though.
 
-Next, run merge_rna_dna_bams.py to pair up the reads 
+Then merge the resulting bams so that only reads where both ends aligned are retained
+Run merge_rna_dna_bams.py to pair up the reads 
 
 ```
 TOADD: EXAMPLE
 ```
+
+You are on your own from here. We suggest using MACS and/or your favourite read counter 
+(we like scTE, but then we would). I think best practice and robust tools haven't 
+really been developed yet (writing this: 2022).
 
 ## Who?
 
