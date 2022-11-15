@@ -3,12 +3,12 @@ import sys, os
 import pysam
 
 if len(sys.argv) > 3:
-    print('args: <dna_aling.bam> <rna_align.bam>')
+    print('args: <dna_align.bam> <rna_align.bam>')
 
 paired_valid_read = {}
 
 def proc_get_reads(bam_file):
-    idx = 1 
+    idx = 1
     __rejected_reads = 0
 
     ret_reads = {}
@@ -17,7 +17,7 @@ def proc_get_reads(bam_file):
     bam = pysam.AlignmentFile(bam_file, 'r')
     for seq in bam:
         idx += 1
-        if (idx) % 1e6 == 0: 
+        if (idx) % 1e6 == 0:
             print('{:,}'.format(idx))
             #break
 
@@ -31,7 +31,9 @@ def proc_get_reads(bam_file):
         ret_reads[seq.query_name] = seq
     idx -= 1
 
-    print('Rejected reads QC: {:,} ({:.1f}%)'.format(__rejected_reads, __rejected_reads/idx * 100))
+    bam.close()
+
+    print(f'Rejected reads QC: {__rejected_reads:,} ({__rejected_reads/idx * 100:.1f}%)')
     return ret_reads, bam
 
 rna, rnatemplate = proc_get_reads(sys.argv[1])
@@ -50,7 +52,7 @@ for name in dna:
 
     merged.add(name)
 
-print('Found {:,} matching reads out of {:,} DNA and {:,} RNA reads'.format(len(merged), len(dna), len(rna)))
+print(f'Found {len(merged):,} matching reads out of {len(dna):,} DNA and {len(rna):,} RNA reads')
 basename = os.path.split(sys.argv[1])[1].replace('.dna.bam', '')
 
 dnaout = pysam.AlignmentFile("{}.dna.bam".format(basename), "wb", template=dnatemplate)

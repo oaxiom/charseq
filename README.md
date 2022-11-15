@@ -14,8 +14,10 @@ This has disadvantages:
 ## How?
 
 You should use cut_adapt (or equiavlent) to remove adaptors first!
-
-`python char_seq.py read1.fq.gz read2.fq.gz`
+```
+python char_seq.py read1.fq.gz read2.fq.gz
+python merge_rna_dna_bams.py dnareads.bam rnareads.bam
+```
 
 ## What?
 
