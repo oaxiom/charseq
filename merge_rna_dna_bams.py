@@ -31,8 +31,6 @@ def proc_get_reads(bam_file):
         ret_reads[seq.query_name] = seq
     idx -= 1
 
-    bam.close()
-
     print(f'Rejected reads QC: {__rejected_reads:,} ({__rejected_reads/idx * 100:.1f}%)')
     return ret_reads, bam
 
@@ -65,5 +63,6 @@ for name in merged:
 
 rnaout.close()
 dnaout.close()
-
+dnatemplate.close()
+rnatemplate.close()
 
