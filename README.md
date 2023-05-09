@@ -61,8 +61,16 @@ Then merge the resulting bams so that only reads where both ends aligned are ret
 Run merge_rna_dna_bams.py to pair up the reads 
 
 ```
-TOADD: EXAMPLE
+Process: ../align.dna/Hs_char_all.rp1.dna.bam
+Rejected reads QC: 0 (0.0%)
+Process: ../align.rna/Hs_char_all.rp1.rna.Aligned.out.bam
+Rejected reads QC: 75,062 (9.9%)
+Merging
+Found 469,606 matching reads out of 686,251 DNA and 530,610 RNA reads
 ```
+
+(This above example was done using the entire dataset, the split above was done using a 
+subset of reads)
 
 You are on your own from here. We suggest using MACS and/or your favourite read counter 
 (we like scTE, but then we would). I think best practice and robust tools haven't 
