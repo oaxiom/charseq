@@ -1,4 +1,6 @@
 
+from itertools import product
+from collections import deque
 import sys, os, gzip
 import regex
 
@@ -7,6 +9,108 @@ compdict = {'A': 'T',
             'G': 'C',
             'T': 'A',
             'N': 'N',}
+
+def needleman_wunsch(x, y):
+    """Run the Needleman-Wunsch algorithm on two sequences.
+
+    x, y -- sequences.
+
+    Code based on pseudocode in Section 3 of:
+
+    Naveed, Tahir; Siddiqui, Imitaz Saeed; Ahmed, Shaftab.
+    "Parallel Needleman-Wunsch Algorithm for Grid." n.d.
+    https://upload.wikimedia.org/wikipedia/en/c/c4/ParallelNeedlemanAlgorithm.pdf
+    """
+    N, M = len(x), len(y)
+    s = lambda a, b: int(a == b)
+
+    DIAG = -1, -1
+    LEFT = -1, 0
+    UP = 0, -1
+
+    # Create tables F and Ptr
+    F = {}
+    Ptr = {}
+
+    F[-1, -1] = 0
+    for i in range(N):
+        F[i, -1] = -i
+    for j in range(M):
+        F[-1, j] = -j
+
+    option_Ptr = DIAG, LEFT, UP
+    for i, j in product(range(N), range(M)):
+        option_F = (
+            F[i - 1, j - 1] + s(x[i], y[j]),
+            F[i - 1, j] - 1,
+            F[i, j - 1] - 1,
+        )
+        F[i, j], Ptr[i, j] = max(zip(option_F, option_Ptr))
+
+    # Work backwards from (N - 1, M - 1) to (0, 0)
+    # to find the best alignment.
+    alignment = deque()
+    i, j = N - 1, M - 1
+    while i >= 0 and j >= 0:
+        direction = Ptr[i, j]
+        if direction == DIAG:
+            element = i, j
+        elif direction == LEFT:
+            element = i, None
+        elif direction == UP:
+            element = None, j
+        alignment.appendleft(element)
+        di, dj = direction
+        i, j = i + di, j + dj
+    while i >= 0:
+        alignment.appendleft((i, None))
+        i -= 1
+    while j >= 0:
+        alignment.appendleft((None, j))
+        j -= 1
+
+    p1 = [None if i is None else x[i] for i, _ in alignment]
+    p2 = [None if j is None else y[j] for _, j in alignment]
+    return ''.join(i if i else j for i, j in zip(p1, p2))
+
+    #return list(alignment)
+
+def print_alignment(x, y, alignment):
+    print("".join("-" if i is None else x[i] for i, _ in alignment))
+    print("".join("-" if j is None else y[j] for _, j in alignment))
+
+def get_consensus(x, y, alignment):
+    p1 = [None if i is None else x[i] for i, _ in alignment]
+    p2 = [None if j is None else y[j] for _, j in alignment]
+    return ''.join(i if i else j for i, j in zip(p1, p2))
+
+def score_matches(x, y, alignment):
+    # Retuns the number of base pairs matching;
+    p1 = [None if i is None else x[i] for i, _ in alignment]
+    p2 = [None if j is None else y[j] for _, j in alignment]
+    return sum(1 if i ==j else 0 for i, j in zip(p1, p2))
+
+'''
+# Test cases:
+# Aligns,
+p1 = 'GTTCCATATTAGCTAAACCGGCGTCCAAGGATCAGGCAGAAAAAAGGAAATGTTTGGAATTGCTGGTGTTTGAGTGGGGACTTGTGTAAACTGTTACTAAACTGGAGCAAGTATGTCCTGTCTAA'
+p2 = 'CGTGAAGCGTTCCATATTAGCTAAACCGGCGTCCAAGGATCAGGCAGAAAACAGGAAATGTTTGGAATTGCTGGTGTTGGAGTGGGGACTTGTGTAAACTGTGACTAAACTGGAGCAAGTATGTCCTGTCTAA'
+
+a = needleman_wunsch(p1, p2)
+print_alignment(p1, p2, a)
+print(get_consensus(p1, p2, a))
+print(score_matches(p1, p2, a))
+
+# No overlap;
+p1 = 'TTTGCAAATAGTCATGCTTTCTCTCATAGTTGTAATGCTTATATCTGTTTAATGTCTTGTTGTTTTGTAAACCTGAAATAACATTTTTCGATTTTAATTTTGATACAGGTGCCTTCAGTTACTCACCATAAATAAAATGTTG'
+p2 = 'GCCTTCAGTTACTCACCATAAATAAAATGTTGTCTAATTGAGTATGATAGGCTTCCTTACCCTAAATATTATTTATTTAAAGAGATAACTTATTCTTGATTTTCTAATTGGGTGGTATTGAAACCTATCATATAAATTTTCAATTCTGT'
+
+a = needleman_wunsch(p1, p2)
+print_alignment(p1, p2, a)
+print(get_consensus(p1, p2, a))
+print(score_matches(p1, p2, a))
+'''
+
 
 def rc(seq):
     return ''.join(reversed([compdict[i] for i in seq])) # new list
@@ -34,18 +138,6 @@ def fastqPE(filename1, filename2):
     oh2.close()
     return
 
-if len(sys.argv) < 3:
-    print('simple_split.py: PE1.fastq.gz PE2.fastq.gz')
-    sys.exit()
-
-stub = os.path.split(sys.argv[1])[1].replace('.fastq', '').replace('.fq', '').replace('.gz', '').replace('.trim', '').replace('.p1','')
-
-rna_reads = []
-dna_reads = []
-pcr_dupes = set([])
-
-min_read_size = 20
-
 class stats:
     both_pairs_too_short = 0
     with_bridge = 0
@@ -63,46 +155,44 @@ class stats:
     probable_self_primes = 0
     no_bridge_linker_cut = 0
 
-bridge_f = 'ACCGGCGTCCAAG' # for searching, actual bridge is a bit longer;
-bridge_r = 'CTTGGACGCCGGT'
 
-def find_bridge(seq, qual, stats=stats, mismatch=2):
+def find_bridge(seq, qual, stats=stats):
     find_f = regex.findall("(ACCGGCGTCCAAG)", seq)
     find_r = regex.findall("(CTTGGACGCCGGT)", seq)
 
     if len(find_f) > 1 or len(find_r) > 1:
         stats.multi_bridge += 1
-        return None, None, None
+        return None, full_seq, None, 'multi_bridge1'
 
     elif len(find_f) == 1 and len(find_r) == 1:
         stats.multi_bridge += 1
-        return None, None, None
+        return None, full_seq, None, 'multi_bridge2'
 
     elif len(find_f) > 0:
         stats.perfect_bridge += 1
         stats.f_strand += 1
         newseq = full_seq
         newqual = qual
-        bridge_loc = newseq.find(bridge_f)
+        bridge_loc = newseq.find('ACCGGCGTCCAAG')
 
     elif len(find_r) > 0:
         stats.perfect_bridge += 1
         stats.r_strand += 1
         newseq = rc(full_seq)
         newqual = qual[::-1]
-        bridge_loc = newseq.find(bridge_f) # Get the new F strand location;
+        bridge_loc = newseq.find('ACCGGCGTCCAAG') # Get the new F strand location;
 
     else:
-        # slower mismatch path:
+        # slower mismatch path for the NW spliced read;
         hit_f = regex.findall("(ACCGGCGTCCAAG){s<=3}", seq)
         hit_r = regex.findall("(CTTGGACGCCGGT){s<=3}", seq)
 
         if len(hit_f) > 1 or len(hit_r) > 1:
             stats.multi_bridge += 1
-            return None, None, None
+            return None, full_seq, None, 'multi_bridge3'
         elif len(hit_f) >= 1 and len(hit_r) >= 1:
             stats.multi_bridge += 1
-            return None, None, None
+            return None, full_seq, None, 'multi_bridge4'
         elif hit_f or hit_r: # Found one
             stats.rescued_bridge += 1
             if hit_f:
@@ -117,13 +207,13 @@ def find_bridge(seq, qual, stats=stats, mismatch=2):
                 bridge_loc = newseq.find(rc(hit_r[0]))
             #print(hit_f, hit_r, bridge_loc)
         else:
-            return None, None, None
+            return None, full_seq, None, 'no_bridge' # For debugging
 
     if bridge_loc == -1:
         # Should be impossible to reach here
         1/0
 
-    return bridge_loc, newseq, newqual
+    return bridge_loc, newseq, newqual, None
 
 def commonOverlapIndexOf(text1, text2):
     # Cache the text lengths to prevent multiple calls.
@@ -185,137 +275,231 @@ def commonOverlapIndexOf_mismatch(text1, text2):
     # fell off the end, nothing found;
     return best
 
-#print(commonOverlapIndexOf_mismatch('ACTCGTTGCT',  'ACTCGTTGCTTTACAA'))
-#print(commonOverlapIndexOf_mismatch('CACTCCTTGCT',  'ACTCGTTGCTTTACAA'))
-# CACTCCTTGCT
-#  ACTCGTTGCTTTACAA [expected]
-#   ACTCGTTGCT
-#1/0
+def get_read_overlap(bc1, bc2, r1_seq, r2_seq, r1_qual, r2_qual):
+    left1 = r1_seq[0:bc1]
+    left2 = r2_seq[0:bc2]
+    if len(left1) >= len(left2):
+        left = left1
+        left_qual = r1_qual[0:bc1]
+    else: # left2 > left1
+        left = left2
+        left_qual = r2_qual[0:bc2]
+
+    rite1 = r1_seq[bc1:]
+    rite2 = r2_seq[bc2:]
+
+    # TODO: Take the highest quality
+    if len(rite1) >= len(rite2):
+        rite = rite1
+        rite_qual = r1_qual[bc1:]
+    else: # left2 > left1
+        rite = rite2
+        rite_qual = r2_qual[bc2:]
+
+    return left, rite, left_qual, rite_qual
 
 if __name__ == '__main__':
+    if len(sys.argv) < 3:
+        print('simple_split.py: PE1.fastq.gz PE2.fastq.gz')
+        sys.exit()
+
+    stub = os.path.split(sys.argv[1])[1].replace('.fastq', '').replace('.fq', '').replace('.gz', '').replace('.trim', '').replace('.p1','')
+
+    min_read_size = 18
+    rna_reads = []
+    dna_reads = []
+    pcr_dupes = set([])
+
     # Avoid global gubbins
     idx = 0
     for r1, r2 in fastqPE(sys.argv[1], sys.argv[2]):
         idx += 1
-        if (idx) % 1e6 == 0:
+        if (idx) % 1e5 == 0:
             print('{:,}'.format(idx))
             #break
-
-        if len(r1['seq']) + len(r2['seq']) < 55: # No way to get info out of this small
-            stats.both_pairs_too_short += 1
-            continue
-
-        # Can reject the simple case when one read is a homopolymer
-        if len(set(r1['seq'])) == 1 or len(set(r2['seq'])) == 1:
-            stats.homopolymer += 1
-            continue
-
-        # This is wrong, as reads may go into each other.
-        # I can't just try to overlap as they may have mismatches;
-        # Also the r2 is the RC anyway...
-        #full_seq = r1['seq'].upper() + r2['seq'].upper()
-        #qual_seq = r1['qual'].upper() + r2['qual'].upper()
 
         r1_seq = r1['seq']
         r2_seq = rc(r2['seq'])
         r1_qual = r1['qual']
         r2_qual = r2['qual'][::-1]
-        kmpa = commonOverlapIndexOf(r1_seq, r2_seq)
-        kmpb = commonOverlapIndexOf(r2_seq, r1_seq) # Need to do twice for convergent;
 
-        # get the best overlap
-        if kmpa < 3 and kmpb < 3: # no great overlap found, so assume they can be concatenated;
-            # seems many of the errors are on the 3' end, trim it and see if you get an overlap;
-            r1_seq = r1_seq[5:-5]
-            r1_qual = r1_qual[5:-5]
-            r2_seq = r2_seq[5:-5]
-            r2_qual = r2_qual[5:-5]
-            kmpa = commonOverlapIndexOf(r1_seq, r2_seq)
-            kmpb = commonOverlapIndexOf(r2_seq, r1_seq) # Need to do twice for convergent;
-            #print('R1', r1_seq)
-            #print('R2', r2_seq)
-            #print(kmpa, kmpb)
-            if kmpa < 3 and kmpb < 3:
-                # I think there is a reasonable argument for pasting them together
-                # and just letting the bridge finder see if it looks valid.
-                full_seq = f'{r1_seq}{r2_seq}'
-                full_qual = f"{r1_qual}{r2_qual}"
-                kmpa = -1
-                kmpb = -2
-                #kmpa = commonOverlapIndexOf(r1_seq, r2_seq)
-                #kmpb = commonOverlapIndexOf(r2_seq, r1_seq) # Need to do twice for convergent;
-                # Can't find an overlap even after trimming
-                # Try a mismatch version here, about ~28%. This part is very slow
-                #kmpa = commonOverlapIndexOf_mismatch(r1_seq, r2_seq)
-                #kmpb = commonOverlapIndexOf_mismatch(r2_seq, r1_seq) # Need to do twice for convergent;
-                #print('R1', r1_seq)
-                #print('R2', r2_seq)
-                #print(kmpa, kmpb)
-                #print(' O', full_seq)
-                #stats.cant_overlap_reads += 1
-                #continue
-
-        #print('R1', r1_seq)
-        #print('R2', r2_seq)
-        #print('KMPA', kmpa, 'KMPB', kmpb)
-
-        if kmpa == kmpb:
-            # seems these are mainly palindromes, self amplifications?
-            stats.probable_self_primes += 1
+        if len(r1_seq) + len(r2_seq) < 55: # No way to get info out of this small
+            stats.both_pairs_too_short += 1
             continue
-        if kmpa < 3 and kmpb < 3:
-            # Can't find an overlap even after trimming and mismatch (above?)
-            #print('R1', r1_seq)
-            #print('R2', r2_seq)
-            #print(' O', full_seq)
-            #stats.cant_overlap_reads += 1
-            #continue
-            full_seq = f'{r1_seq}{r2_seq}'
-            full_qual = f"{r1_qual}{r2_qual}"
-        elif kmpa > kmpb: # correct;
-            full_seq = f'{r1_seq}{r2_seq[kmpa:]}'
-            full_qual = f"{r1_qual}{r2_qual[kmpa:]}"
-        elif kmpb > kmpa: # correct;
-            full_seq = f'{r2_seq}{r1_seq[kmpb:]}'
-            full_qual = f'{r2_qual}{r1_qual[kmpb:]}'
-        else:
-            1/0 # Impossible! (Maybe)
 
-        #print(' O', full_seq)
+        # Can reject the simple case when one read is a homopolymer
+        if len(set(r1_seq)) == 1 or len(set(r2_seq)) == 1:
+            stats.homopolymer += 1
+            continue
+
+        # See if there is a bridge in at least one read:
+        b1f = regex.findall("(ACCGGCGTCCAAG)", r1_seq) # bridge must be on same strand
+        b2f = regex.findall("(ACCGGCGTCCAAG)", r2_seq)
+        b1r = regex.findall("(CTTGGACGCCGGT)", r1_seq) # Not optimised. Done for clarity
+        b2r = regex.findall("(CTTGGACGCCGGT)", r2_seq)
+
+        if len(b1f) > 1 or len(b2f) > 1 or len(b1f) > 1 or len(b2f) > 1: # Reject reads with Multibridges
+            stats.multi_bridge += 1
+            continue
+
+        # This is written in a very verbose style...
+        # TODO: Clean up, it's very fast so the method overhead is not a problem.
+        if b1f and b2f: # Simple case, read 1 and 2 have a bridge on the top strand
+            # Sometimes the rite is longer than the left... so take the longer of the two sides;
+            bc1 = r1_seq.find(b1f[0])
+            bc2 = r2_seq.find(b2f[0])
+
+            left, rite, left_qual, rite_qual = get_read_overlap(bc1, bc2, r1_seq, r2_seq, r1_qual, r2_qual)
+
+            #print(f'R1: {r1_seq}')
+            #print(f'R2: {r2_seq}')
+            #print(f'FS: {left}-{rite}')
+            #print()
+
+            full_seq = f'{left}{rite}'
+            full_qual = f'{left_qual}{rite_qual}' # You should take the highest quality for each nucleotide...
+
+        elif b1r and b2r: # Check the reverse:
+            # Simple case, 1 bridge on each read, - strand;
+            # Same code as above, just on the reversed  seq:
+            # Sometimes the rite is longer than the left... so take the longer of the two sides;
+            bc1 = r1_seq.find(b1r[0])
+            bc2 = r2_seq.find(b2r[0])
+
+            left, rite, left_qual, rite_qual = get_read_overlap(bc1, bc2, r1_seq, r2_seq, r1_qual, r2_qual)
+
+            #print(f'R1: {r1_seq}')
+            #print(f'R2: {r2_seq}')
+            #print(f'FS: {left}-{rite}')
+            #print()
+
+            # reverse them here;
+            full_seq = rc(f'{left}{rite}')
+            full_qual = f'{left_qual}{rite_qual}'[::-1] # You should take the highest quality for each nucleotide...
+        else:
+            # Bridge not found in both reads, see if we can rescue the bridge
+            # by looking for mismatch
+
+            if not b1f: b1f = regex.findall("(ACCGGCGTCCAAG){s<=2}", r1_seq) # Using more than 3 is not a good idea.
+            if not b2f: b2f = regex.findall("(ACCGGCGTCCAAG){s<=2}", r2_seq)
+            if not b1r: b1r = regex.findall("(CTTGGACGCCGGT){s<=2}", r1_seq) # Not optimised. Done for clarity
+            if not b2r: b2r = regex.findall("(CTTGGACGCCGGT){s<=2}", r2_seq)
+
+            if len(b1f) > 1 or len(b2f) > 1 or len(b1f) > 1 or len(b2f) > 1: # Reject reads with Multibridges
+                stats.multi_bridge += 1
+                continue
+
+            if b1f and b2f:
+                bc1 = r1_seq.find(b1f[0])
+                bc2 = r2_seq.find(b2f[0])
+
+                left, rite, left_qual, rite_qual = get_read_overlap(bc1, bc2, r1_seq, r2_seq, r1_qual, r2_qual)
+                # Fix for perfect barcode
+                rite = rite[13:]
+                rite_qual = rite_qual[13:]
+
+                #print(f'R1: {r1_seq}')
+                #print(f'R2: {r2_seq}')
+                #print(f'FS: {left}-ACCGGCGTCCAAG-{rite}')
+                #print()
+
+                full_seq = f'{left}ACCGGCGTCCAAG{rite}'
+                full_qual = f'{left_qual}{rite_qual}' # You should take the highest quality for each nucleotide...
+                stats.rescued_bridge += 1
+
+            elif b1r and b2r:
+                bc1 = r1_seq.find(b1r[0])
+                bc2 = r2_seq.find(b2r[0])
+
+                left, rite, left_qual, rite_qual = get_read_overlap(bc1, bc2, r1_seq, r2_seq, r1_qual, r2_qual)
+                # Fix for perfect barcode
+                rite = rite[13:]
+                rite_qual = rite_qual[13:]
+
+                #print(f'R1: {r1_seq}')
+                #print(f'R2: {r2_seq}')
+                #print(f'FS: {left}-CTTGGACGCCGGT-{rite}')
+                #print()
+
+                full_seq = rc(f'{left}CTTGGACGCCGGT{rite}')
+                full_qual = f'{left_qual}{rite_qual}'[::-1] # You should take the highest quality for each nucleotide...
+                stats.rescued_bridge += 1
+
+            else:
+                # If there is one bridge, then just use that read, and it seems reasonable to add the opposite read onto the 3' end;
+                if len(b1f) == 1:
+
+                    full_seq = f'{r1_seq}{r2_seq}'
+                    full_qual = f'{r1_qual}{r2_qual}'
+                elif len(b2f) == 1:
+
+                    full_seq = f'{r1_seq}{r2_seq}'
+                    full_qual = f'{r1_qual}{r2_qual}'
+                elif len(b1r) == 1:
+
+                    full_seq = f'{rc(r1_seq)}{rc(r2_seq)}'
+                    full_qual = f'{r1_qual[::-1]}{r2_qual[::-1]}'
+                elif len(b2r) == 1:
+
+                    full_seq = f'{rc(r1_seq)}{rc(r2_seq)}'
+                    full_qual = f'{r1_qual[::-1]}{r2_qual[::-1]}'
+                else: # i.e. all zero
+                    stats.no_bridge += 1
+                    continue
+                    # Seems not worth even trying if no bridge with a mismatch >=3
+
+                '''
+
+                # Did the read have one bridge on any side?
+                print(b1f, b2f, b1r, b2r)
+
+                print(r1_seq)
+                print(r2_seq)
+
+                # No obvious bridges. Can we stitch together anyway?
+                # try for the very slow path...
+                full_qual = f"{r1_qual}{r2_qual}"
+                full_seq = needleman_wunsch(r1_seq, r2_seq) # see in NW does a better job;
+                print(full_seq)
+                full_qual = full_qual[0:len(full_seq)]
+                #stats.no_bridge += 1
+                #continue
+                '''
 
         if full_seq in pcr_dupes:
             stats.pcr_dupe += 1
             continue
         pcr_dupes.add(full_seq)
 
-        bridge_loc, full_seq, full_qual = find_bridge(full_seq, full_qual)
+        bridge_loc, full_seq, full_qual, fail_type = find_bridge(full_seq, full_qual)
+
         if not bridge_loc:
             stats.no_bridge += 1
             continue
 
         stats.with_bridge += 1
 
-        rna = full_seq[0:bridge_loc-7] # still has UMI, -7 cuts of AANNNAA
-        dna = full_seq[bridge_loc+17:]
+        rna = full_seq[0:bridge_loc-1] # still has UMI, -7 cuts of AANNNAA
+        dna = full_seq[bridge_loc+17:] # It is definitly 17...
 
-        rna = rna.rstrip("A")
+        rna = rna.rstrip("A") # Seems this is useful according the the char-seq code;
         # Do twice for speed;
-        if len(dna) < min_read_size:
+        if len(dna) <= min_read_size:
             stats.dna_too_short += 1
             continue
-        if len(rna) < min_read_size:
+        if len(rna) <= min_read_size:
             stats.rna_too_short += 1
             continue
 
-        if dna.startswith('TTTAATTAAGTCG'): # No cut, no genomic DAN on this frag
-                           #TTTAATTAAGTCGGAGATCA
+        if dna.startswith('TTTAATTAA'): # No cut, the PacI site is still intact. no genomic DAN on this frag
+                          #TTTAATTAAGTCGGAGATCA
             stats.no_bridge_linker_cut += 1
             continue
 
+        #print(rna)
+
         bridge_seq = full_seq[bridge_loc:bridge_loc+17]
-        #print(f'read: {rna} {bridge_seq} {dna}')
-        #print(f'{rna} {bridge_seq}')
-        #print(f'{bridge_seq} {dna}')
+        #print(f'Passed read: {rna} {bridge_seq} {dna}')
 
         #print(dna[0:30])
         # DNA need to find
@@ -339,16 +523,16 @@ if __name__ == '__main__':
     print(f"  Probable self prime {stats.probable_self_primes:,} ({stats.probable_self_primes / idx *100:.1f}%)")
     print(f"   Can't overlap the reads: {stats.cant_overlap_reads:,} ({stats.cant_overlap_reads / idx *100:.1f}%)")
     print('     PCR dupes: {:,} ({:.1f}%)'.format(stats.pcr_dupe, stats.pcr_dupe / idx * 100))
-    print('      [ Perfect bridge with 0 bp mismatch: {:,} ({:.1f}%)'.format(stats.perfect_bridge, stats.perfect_bridge / idx * 100))
-    print('      [ Rescued bridge with 1-2 bp mismatch: {:,} ({:.1f}%)'.format(stats.rescued_bridge, stats.rescued_bridge / idx * 100))
-    print('      [ Really no bridge: {:,} ({:.1f}%)'.format(stats.no_bridge, stats.no_bridge / idx * 100))
-    print('      [ >1 bridge: {:,} ({:.1f}%)'.format(stats.multi_bridge, stats.multi_bridge / idx * 100))
+    print('      Perfect bridge with 0 bp mismatch: {:,} ({:.1f}%)'.format(stats.perfect_bridge, stats.perfect_bridge / idx * 100))
+    print('      Rescued bridge with 1-2 bp mismatch: {:,} ({:.1f}%)'.format(stats.rescued_bridge, stats.rescued_bridge / idx * 100))
+    print('      Really no bridge: {:,} ({:.1f}%)'.format(stats.no_bridge, stats.no_bridge / idx * 100))
+    print('      >1 bridge: {:,} ({:.1f}%)'.format(stats.multi_bridge, stats.multi_bridge / idx * 100))
     print('        With bridge: {:,} ({:.1f}%)'.format(stats.with_bridge, stats.with_bridge / idx * 100))
-    print('          [ Bridge on forward: {:,} ({:.1f}%)'.format(stats.f_strand, stats.f_strand / stats.with_bridge * 100))
-    print('          [ Bridge on reverse: {:,} ({:.1f}%)'.format(stats.r_strand, stats.r_strand / stats.with_bridge * 100))
-    print(f'           [ The bridge linker was not cut: {stats.no_bridge_linker_cut:,} ({stats.no_bridge_linker_cut / idx * 100:.1f}%)')
-    print(f'           [ DNA sequence <{min_read_size} bp too short: {stats.dna_too_short:,} ({stats.dna_too_short / idx * 100:.1f}%)')
-    print(f'           [ RNA sequence <{min_read_size} bp too short: {stats.rna_too_short:,} ({stats.rna_too_short / idx * 100:.1f}%)')
+    #print('          Bridge on forward: {:,} ({:.1f}%)'.format(stats.f_strand, stats.f_strand / stats.with_bridge * 100))
+    #print('          Bridge on reverse: {:,} ({:.1f}%)'.format(stats.r_strand, stats.r_strand / stats.with_bridge * 100))
+    print(f'           The bridge linker was not cut: {stats.no_bridge_linker_cut:,} ({stats.no_bridge_linker_cut / idx * 100:.1f}%)')
+    print(f'           DNA sequence <{min_read_size} bp too short: {stats.dna_too_short:,} ({stats.dna_too_short / idx * 100:.1f}%)')
+    print(f'           RNA sequence <{min_read_size} bp too short: {stats.rna_too_short:,} ({stats.rna_too_short / idx * 100:.1f}%)')
     print('Final number of reads kept: {:,} ({:.1f}%)'.format(len(dna_reads), len(dna_reads) / idx * 100))
 
     file_rna_reads = gzip.open('{}.rna.fq.gz'.format(stub), 'wt')
