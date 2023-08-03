@@ -300,8 +300,11 @@ def get_read_overlap(bc1, bc2, r1_seq, r2_seq, r1_qual, r2_qual):
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print('simple_split.py: PE1.fastq.gz PE2.fastq.gz')
+        print('charseq.py: PE1.fastq.gz PE2.fastq.gz')
         sys.exit()
+
+    print('charseq.py')
+    print('Inputs:' sys.argv[1], sys.argv[2])
 
     stub = os.path.split(sys.argv[1])[1].replace('.fastq', '').replace('.fq', '').replace('.gz', '').replace('.trim', '').replace('.p1','')
 
@@ -315,7 +318,7 @@ if __name__ == '__main__':
     for r1, r2 in fastqPE(sys.argv[1], sys.argv[2]):
         idx += 1
         if (idx) % 1e5 == 0:
-            print('{:,}'.format(idx))
+            print(f'Processed {idx:,} read pairs'.format(idx))
             #break
 
         r1_seq = r1['seq']
