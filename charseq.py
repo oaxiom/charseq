@@ -304,7 +304,7 @@ if __name__ == '__main__':
         sys.exit()
 
     print('charseq.py')
-    print('Inputs:' sys.argv[1], sys.argv[2])
+    print('Inputs:', sys.argv[1], sys.argv[2])
 
     stub = os.path.split(sys.argv[1])[1].replace('.fastq', '').replace('.fq', '').replace('.gz', '').replace('.trim', '').replace('.p1','')
 
