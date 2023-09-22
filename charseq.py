@@ -503,7 +503,7 @@ if __name__ == '__main__':
         #print(rna)
 
         # Strip
-        rna = rna.lstrip('C')
+        rna = rna.lstrip('C').lstrip('T')
         dna = dna.rstrip('G')
 
         bridge_seq = full_seq[bridge_loc:bridge_loc+17]
