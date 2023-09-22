@@ -485,7 +485,12 @@ if __name__ == '__main__':
         rna = full_seq[0:bridge_loc-1] # still has UMI, -7 cuts of AANNNAA
         dna = full_seq[bridge_loc+17:] # It is definitly 17...
 
+
+        # These were seen in the wild. Not sure why...
+        rna = rna.lstrip('C')
         rna = rna.rstrip("A") # Seems this is useful according the the char-seq code;
+        rna = rna.lstrip('T') # Because I tolerate RC in my code;
+        dna = dna.rstrip('G')
         # Do twice for speed;
         if len(dna) <= min_read_size:
             stats.dna_too_short += 1
@@ -494,7 +499,7 @@ if __name__ == '__main__':
             stats.rna_too_short += 1
             continue
 
-        if dna.startswith('TTTAATTAA'): # No cut, the PacI site is still intact. no genomic DAN on this frag
+        if dna.startswith('TTTAATTAA'): # No cut, the PacI site is still intact. no genomic DNA on this frag
                           #TTTAATTAAGTCGGAGATCA
             stats.no_bridge_linker_cut += 1
             #print(f'Passed read: {rna} bridge_seq {dna}')
@@ -502,9 +507,8 @@ if __name__ == '__main__':
 
         #print(rna)
 
-        # Strip
-        rna = rna.lstrip('C').lstrip('T')
-        dna = dna.rstrip('G')
+        # Strip TTTT. Do this after checking the bridge hasn't been cut;
+
 
         bridge_seq = full_seq[bridge_loc:bridge_loc+17]
         #print(f'Passed read: {rna} {bridge_seq} {dna}')
