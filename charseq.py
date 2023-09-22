@@ -497,7 +497,7 @@ if __name__ == '__main__':
         if dna.startswith('TTTAATTAA'): # No cut, the PacI site is still intact. no genomic DAN on this frag
                           #TTTAATTAAGTCGGAGATCA
             stats.no_bridge_linker_cut += 1
-            print(f'Passed read: {rna} bridge_seq {dna}')
+            #print(f'Passed read: {rna} bridge_seq {dna}')
             continue
 
         #print(rna)
